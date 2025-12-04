@@ -9,7 +9,60 @@ interface CryptoData {
   current_price: number;
   price_change_percentage_24h: number;
   image: string;
+  sparkline_in_7d?: {
+    price: number[];
+  };
 }
+
+interface MiniChartProps {
+  data: number[];
+  isPositive: boolean;
+  width?: number;
+  height?: number;
+}
+
+// Simple SVG sparkline chart component
+const MiniChart: React.FC<MiniChartProps> = ({ data, isPositive, width = 120, height = 40 }) => {
+  if (!data || data.length === 0) return null;
+
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min;
+  
+  // Create SVG path
+  const points = data.map((value, index) => {
+    const x = (index / (data.length - 1)) * width;
+    const y = height - ((value - min) / range) * height;
+    return `${x},${y}`;
+  }).join(' ');
+
+  const pathD = `M ${points.split(' ').map((point, index) => 
+    index === 0 ? `M ${point}` : `L ${point}`
+  ).join(' ')}`;
+
+  return (
+    <svg width={width} height={height} className="overflow-visible">
+      <path
+        d={pathD}
+        fill="none"
+        stroke={isPositive ? '#16a34a' : '#dc2626'}
+        strokeWidth="2"
+        className="drop-shadow-sm"
+      />
+      {/* Add gradient fill under the line */}
+      <defs>
+        <linearGradient id={`gradient-${isPositive ? 'green' : 'red'}`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor={isPositive ? '#16a34a' : '#dc2626'} stopOpacity="0.3"/>
+          <stop offset="100%" stopColor={isPositive ? '#16a34a' : '#dc2626'} stopOpacity="0.05"/>
+        </linearGradient>
+      </defs>
+      <path
+        d={`${pathD} L ${width},${height} L 0,${height} Z`}
+        fill={`url(#gradient-${isPositive ? 'green' : 'red'})`}
+      />
+    </svg>
+  );
+};
 
 export default function CryptoPriceTracker() {
   const [cryptoData, setCryptoData] = useState<CryptoData[]>([]);
@@ -22,16 +75,15 @@ export default function CryptoPriceTracker() {
       setLoading(true);
       setError(null);
       
-      // Use a more reliable API endpoint with proper headers and error handling
+      // Fetch data with sparkline (7-day price history for mini charts)
       const response = await fetch(
-        'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true',
+        'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum&order=market_cap_desc&per_page=2&page=1&sparkline=true&price_change_percentage=24h',
         {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
           },
-          // Add cache busting to avoid stale data
           cache: 'no-cache'
         }
       );
@@ -42,30 +94,20 @@ export default function CryptoPriceTracker() {
       
       const data = await response.json();
       
-      // Validate the response data structure
-      if (!data.bitcoin || !data.ethereum) {
+      if (!Array.isArray(data) || data.length === 0) {
         throw new Error('Invalid response format from API');
       }
       
       // Transform the data to match our interface
-      const transformedData: CryptoData[] = [
-        {
-          id: 'bitcoin',
-          name: 'Bitcoin',
-          symbol: 'BTC',
-          current_price: data.bitcoin?.usd || 0,
-          price_change_percentage_24h: data.bitcoin?.usd_24h_change || 0,
-          image: '₿'
-        },
-        {
-          id: 'ethereum',
-          name: 'Ethereum',
-          symbol: 'ETH',
-          current_price: data.ethereum?.usd || 0,
-          price_change_percentage_24h: data.ethereum?.usd_24h_change || 0,
-          image: 'Ξ'
-        }
-      ];
+      const transformedData: CryptoData[] = data.map((coin: any) => ({
+        id: coin.id,
+        name: coin.name,
+        symbol: coin.symbol.toUpperCase(),
+        current_price: coin.current_price || 0,
+        price_change_percentage_24h: coin.price_change_percentage_24h || 0,
+        image: coin.id === 'bitcoin' ? '₿' : 'Ξ',
+        sparkline_in_7d: coin.sparkline_in_7d
+      }));
       
       setCryptoData(transformedData);
       setLastUpdated(new Date());
@@ -74,7 +116,22 @@ export default function CryptoPriceTracker() {
       console.error('Error fetching crypto data:', err);
       setError(err instanceof Error ? err.message : 'Unable to fetch crypto prices');
       
-      // Set fallback demo data so the app still shows something useful
+      // Generate sample sparkline data for demo
+      const generateSampleSparkline = (basePrice: number, isPositive: boolean) => {
+        const points = 24; // 24 hours of data
+        const data = [];
+        let currentPrice = basePrice * 0.98; // Start slightly lower
+        
+        for (let i = 0; i < points; i++) {
+          const randomChange = (Math.random() - 0.5) * 0.02; // ±1% random change
+          const trendChange = isPositive ? 0.001 : -0.001; // Small trend
+          currentPrice *= (1 + randomChange + trendChange);
+          data.push(currentPrice);
+        }
+        return data;
+      };
+      
+      // Set fallback demo data with sample charts
       setCryptoData([
         {
           id: 'bitcoin',
@@ -82,7 +139,10 @@ export default function CryptoPriceTracker() {
           symbol: 'BTC',
           current_price: 43250.00,
           price_change_percentage_24h: 2.45,
-          image: '₿'
+          image: '₿',
+          sparkline_in_7d: {
+            price: generateSampleSparkline(43250, true)
+          }
         },
         {
           id: 'ethereum',
@@ -90,7 +150,10 @@ export default function CryptoPriceTracker() {
           symbol: 'ETH',
           current_price: 2580.50,
           price_change_percentage_24h: -1.23,
-          image: 'Ξ'
+          image: 'Ξ',
+          sparkline_in_7d: {
+            price: generateSampleSparkline(2580, false)
+          }
         }
       ]);
       setLoading(false);
@@ -177,23 +240,50 @@ export default function CryptoPriceTracker() {
                     <p className="text-gray-500 text-sm">{crypto.symbol}</p>
                   </div>
                 </div>
+                
+                {/* Mini Chart */}
+                <div className="flex flex-col items-end">
+                  <p className="text-gray-400 text-xs mb-1">24h Trend</p>
+                  {crypto.sparkline_in_7d?.price && (
+                    <MiniChart 
+                      data={crypto.sparkline_in_7d.price.slice(-24)} // Last 24 data points
+                      isPositive={crypto.price_change_percentage_24h >= 0}
+                      width={100}
+                      height={30}
+                    />
+                  )}
+                </div>
               </div>
               
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div>
                   <p className="text-gray-500 text-sm">Current Price</p>
                   <p className="text-3xl font-bold text-gray-800">{formatPrice(crypto.current_price)}</p>
                 </div>
                 
-                <div>
-                  <p className="text-gray-500 text-sm">24h Change</p>
-                  <p className={`text-xl font-semibold ${
-                    crypto.price_change_percentage_24h >= 0 
-                      ? 'text-green-600' 
-                      : 'text-red-600'
-                  }`}>
-                    {formatPercentage(crypto.price_change_percentage_24h)}
-                  </p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-500 text-sm">24h Change</p>
+                    <p className={`text-xl font-semibold ${
+                      crypto.price_change_percentage_24h >= 0 
+                        ? 'text-green-600' 
+                        : 'text-red-600'
+                    }`}>
+                      {formatPercentage(crypto.price_change_percentage_24h)}
+                    </p>
+                  </div>
+                  
+                  {/* Price trend indicator */}
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${
+                      crypto.price_change_percentage_24h >= 0 
+                        ? 'bg-green-500' 
+                        : 'bg-red-500'
+                    }`}></div>
+                    <span className="text-gray-400 text-sm">
+                      {crypto.price_change_percentage_24h >= 0 ? '↗' : '↘'}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -213,6 +303,9 @@ export default function CryptoPriceTracker() {
     </div>
   );
 }
+
+
+
 
 
 
