@@ -122,20 +122,20 @@ export default function CryptoPriceTracker() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading crypto data...</div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
+        <div className="text-gray-800 text-xl">Loading crypto data...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-red-400 text-xl mb-4">Error: {error}</div>
+          <div className="text-red-600 text-xl mb-4">Error: {error}</div>
           <button 
             onClick={fetchCryptoData}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors shadow-lg"
           >
             Retry
           </button>
@@ -145,18 +145,18 @@ export default function CryptoPriceTracker() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 text-gray-800">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+          <h1 className="text-4xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Crypto Price Tracker
           </h1>
-          <p className="text-gray-300 text-lg">
+          <p className="text-gray-600 text-lg">
             Real-time Bitcoin and Ethereum prices
           </p>
           {lastUpdated && (
-            <p className="text-gray-400 text-sm mt-2">
+            <p className="text-gray-500 text-sm mt-2">
               Last updated: {lastUpdated.toLocaleTimeString()}
             </p>
           )}
@@ -167,30 +167,30 @@ export default function CryptoPriceTracker() {
           {cryptoData.map((crypto) => (
             <div
               key={crypto.id}
-              className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300"
+              className="bg-white rounded-2xl p-6 border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300"
             >
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="text-3xl">{crypto.image}</div>
                   <div>
-                    <h3 className="text-xl font-semibold">{crypto.name}</h3>
-                    <p className="text-gray-400 text-sm">{crypto.symbol}</p>
+                    <h3 className="text-xl font-semibold text-gray-800">{crypto.name}</h3>
+                    <p className="text-gray-500 text-sm">{crypto.symbol}</p>
                   </div>
                 </div>
               </div>
               
               <div className="space-y-3">
                 <div>
-                  <p className="text-gray-400 text-sm">Current Price</p>
-                  <p className="text-3xl font-bold">{formatPrice(crypto.current_price)}</p>
+                  <p className="text-gray-500 text-sm">Current Price</p>
+                  <p className="text-3xl font-bold text-gray-800">{formatPrice(crypto.current_price)}</p>
                 </div>
                 
                 <div>
-                  <p className="text-gray-400 text-sm">24h Change</p>
+                  <p className="text-gray-500 text-sm">24h Change</p>
                   <p className={`text-xl font-semibold ${
                     crypto.price_change_percentage_24h >= 0 
-                      ? 'text-green-400' 
-                      : 'text-red-400'
+                      ? 'text-green-600' 
+                      : 'text-red-600'
                   }`}>
                     {formatPercentage(crypto.price_change_percentage_24h)}
                   </p>
@@ -204,7 +204,7 @@ export default function CryptoPriceTracker() {
         <div className="text-center mt-8">
           <button
             onClick={fetchCryptoData}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105"
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg"
           >
             Refresh Prices
           </button>
@@ -213,5 +213,6 @@ export default function CryptoPriceTracker() {
     </div>
   );
 }
+
 
 
